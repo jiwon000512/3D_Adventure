@@ -18,11 +18,19 @@ public class PlayerController : MonoBehaviour
 
     public float TurnSpeed = 10f;
 
+    public bool IsAttacking = false;
+
+    public float AttackSpeed = 0.3f;
+
     float Speed;
 
+    bool CanAttack = true;
+    
     bool CanInput = true;
 
     bool WeaponEquipped = false;
+
+
 
     void Start()
     {
@@ -30,38 +38,50 @@ public class PlayerController : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         EquipPosition.SetActive(false);
 
-        SetAbility(WalkSpeed, RunSpeed);
+        SetAbility(WalkSpeed, RunSpeed, TurnSpeed, AttackSpeed);
     }
+
 
     void Update()
     {
+
         Move();
 
         DisableWeapon();
 
-        if (WeaponEquipped)
-        {
+        AttackCoolDown();
 
-            Attack();
+        Attack();
 
-        }
+
     }
 
-    void SetAbility(float WalkSpeed, float RunSpeed)
+
+    void SetAbility(float WalkSpeed, float RunSpeed, float TurnSpeed ,float AttackSpeed)
     {
+
         this.WalkSpeed = WalkSpeed;
         this.RunSpeed = RunSpeed;
+        this.TurnSpeed = TurnSpeed;
+        this.AttackSpeed = AttackSpeed;
+
     }
+
 
     void Move()
     {
         if (!CanInput)
         {
+
             //Debug.Log("cantmove");
             return;
+
+
         }
 
+
         Vector2 direction = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+
 
         bool isMove = direction.magnitude != 0;
         bool isRun = Input.GetKey(KeyCode.LeftShift);
@@ -70,7 +90,7 @@ public class PlayerController : MonoBehaviour
 
         animator.SetBool("Walk", isMove);
 
-
+        //Debug.Log(animator.GetBool("Walk"));
 
         if (isMove)
         {
@@ -83,6 +103,9 @@ public class PlayerController : MonoBehaviour
 
             Vector3 moveDir = lookForward * direction.y + lookRight * direction.x;
             transform.forward = moveDir;
+            //Vector3.Lerp(transform.forward, moveDir, Time.deltaTime * TurnSpeed);
+
+
 
             if (isRun)
             {
@@ -102,12 +125,14 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
+
             if (animator.GetBool("Run"))
             {
 
                 animator.SetBool("Run", false);
 
             }
+
         }
 
         if (roll && isMove || roll && isRun)
@@ -118,10 +143,13 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+
     void DisableWeapon()
     {
+
         if (Input.GetKeyDown(KeyCode.E))
         {
+
             if (WeaponEquipped)
             {
 
@@ -136,11 +164,15 @@ public class PlayerController : MonoBehaviour
                 animator.SetTrigger("WeaponEquip");
 
             }
+
         }
+
     }
+
 
     void AbleWeapon()
     {
+
         if (WeaponEquipped)
         {
 
@@ -161,40 +193,95 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+
     void Attack()
     {
 
-        if (Input.GetMouseButtonDown(0))
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(2);
+
+        if (Input.GetMouseButtonDown(0) && WeaponEquipped && CanAttack)
         {
 
-            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
-
-            if (state.IsTag("Attack") && state.normalizedTime >= 0.3f)
+            if (state.IsTag("Attack") && state.normalizedTime >= 0.5 && state.normalizedTime < 0.99)
             {
 
-                animator.SetTrigger("Attack");
-                SetCanInput(false);
+                animator.SetTrigger("NextAttack");
 
             }
+
             else if (!state.IsTag("Attack"))
             {
 
-                animator.SetTrigger("Attack");
+                animator.SetBool("Attack", true);
+                SetIsAttacking(true);
                 SetCanInput(false);
 
             }
+
         }
+
+        if(state.IsTag("Attack") && state.normalizedTime >= 0.99)
+        {
+            
+            animator.SetBool("Attack", false);
+            AnimationEnd();
+            CanAttack = false;
+            
+        }
+
     }
+
+
+    void AttackCoolDown()
+    {
+
+        if(!CanAttack)
+        {
+
+            AttackSpeed-= Time.deltaTime;
+
+            if(AttackSpeed <= 0)
+            {
+
+                AttackSpeed = 0.3f;
+                CanAttack = true;
+
+            }
+
+        }
+
+    }
+
+
 
     void SetCanInput(bool CanInput = true)
     {
+
         this.CanInput = CanInput;
+
     }
+
+
+    void SetIsAttacking(bool isAttacking = false)
+    {
+
+        this.IsAttacking = isAttacking;
+
+    }
+
+
 
     void AnimationEnd()
     {
+
         SetCanInput();
+        SetIsAttacking();
+
     }
+
+
+
+
 
 }
 
