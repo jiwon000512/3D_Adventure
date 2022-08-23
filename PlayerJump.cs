@@ -7,24 +7,34 @@ public class PlayerJump : MonoBehaviour
     Rigidbody rigid;
 
     Animator animator;
+
     public float JumpPower = 5f;
+
+
     void Start()
     {
+
         rigid = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
+    
     }
 
     void Update()
     {
-        Jump();
+    
+        //Jump();
+    
     }
 
     void Jump()
     {
+
         if (Input.GetKeyDown(KeyCode.F))
         {
+
             rigid.AddForce(Vector3.up * JumpPower, ForceMode.Impulse);
-            //animator.SetTrigger("Jump");
+            animator.SetTrigger("Jump");
+
         }
     }
 }

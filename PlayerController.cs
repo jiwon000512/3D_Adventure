@@ -1,16 +1,19 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    Animator animator;
 
     public GameObject KeepPosition;
 
     public GameObject EquipPosition;
 
-    public Transform Cam;
+    GameObject CameraLockTarget;
+
+    Camera Cam;
+
+    Animator animator;
+
+    Animator EnemeyAnim;
 
     public float WalkSpeed = 2f;
 
@@ -22,30 +25,41 @@ public class PlayerController : MonoBehaviour
 
     public float AttackSpeed = 0.3f;
 
+    public bool CanInput = true;
+
     float Speed;
 
     bool CanAttack = true;
-    
-    bool CanInput = true;
 
     bool WeaponEquipped = false;
 
+    bool AlreadyAttacked = false;
+
+    bool isCameraLock = false;
 
 
     void Start()
     {
+
         animator = GetComponent<Animator>();
+        Cam = UnityEngine.Camera.main;
         Cursor.lockState = CursorLockMode.Locked;
         EquipPosition.SetActive(false);
 
         SetAbility(WalkSpeed, RunSpeed, TurnSpeed, AttackSpeed);
+
+
+        GetCameraLockTarget();
+        Debug.Log(CameraLockTarget.name);
     }
 
 
     void Update()
     {
 
-        Move();
+        Attacked();
+
+        Move(Cam.transform);
 
         DisableWeapon();
 
@@ -57,7 +71,7 @@ public class PlayerController : MonoBehaviour
     }
 
 
-    void SetAbility(float WalkSpeed, float RunSpeed, float TurnSpeed ,float AttackSpeed)
+    void SetAbility(float WalkSpeed, float RunSpeed, float TurnSpeed, float AttackSpeed)
     {
 
         this.WalkSpeed = WalkSpeed;
@@ -68,8 +82,9 @@ public class PlayerController : MonoBehaviour
     }
 
 
-    void Move()
+    void Move(Transform standard)
     {
+
         if (!CanInput)
         {
 
@@ -85,8 +100,6 @@ public class PlayerController : MonoBehaviour
 
         bool isMove = direction.magnitude != 0;
         bool isRun = Input.GetKey(KeyCode.LeftShift);
-        bool roll = Input.GetKeyDown(KeyCode.Space);
-
 
         animator.SetBool("Walk", isMove);
 
@@ -98,13 +111,12 @@ public class PlayerController : MonoBehaviour
             animator.SetBool("Run", isRun);
 
 
-            Vector3 lookForward = new Vector3(Cam.forward.x, 0, Cam.forward.z).normalized;
-            Vector3 lookRight = new Vector3(Cam.right.x, 0, Cam.right.z).normalized;
+            Vector3 lookForward = new Vector3(standard.forward.x, 0, standard.forward.z).normalized;
+            Vector3 lookRight = new Vector3(standard.right.x, 0, standard.right.z).normalized;
 
             Vector3 moveDir = lookForward * direction.y + lookRight * direction.x;
-            transform.forward = moveDir;
-            //Vector3.Lerp(transform.forward, moveDir, Time.deltaTime * TurnSpeed);
 
+            transform.forward = moveDir;
 
 
             if (isRun)
@@ -135,17 +147,63 @@ public class PlayerController : MonoBehaviour
 
         }
 
-        if (roll && isMove || roll && isRun)
+    }
+
+
+    void GetCameraLockTarget()
+    {
+
+        Collider[] objects = Physics.OverlapSphere(transform.position, 20f);
+        float distanceToPlayer = 20f;
+
+        for (int i = 0; i < objects.Length; i++)
         {
 
-            animator.SetTrigger("Roll");
+            if (objects[i].gameObject.tag == "Enemy")
+            {
+
+                if(Vector3.Magnitude(objects[i].gameObject.transform.position - transform.position) <= distanceToPlayer)
+                {
+
+                    CameraLockTarget = objects[i].gameObject;
+                    distanceToPlayer = Vector3.Magnitude(objects[i].gameObject.transform.position - transform.position);
+
+                }
+
+            }
 
         }
+
+    }
+
+
+
+    void CameraLock()
+    {
+
+
+
+    }
+
+
+
+    void CameraLockMove()
+    {
+
+
+
     }
 
 
     void DisableWeapon()
     {
+
+        if (!CanInput)
+        {
+
+            return;
+
+        }
 
         if (Input.GetKeyDown(KeyCode.E))
         {
@@ -202,7 +260,7 @@ public class PlayerController : MonoBehaviour
         if (Input.GetMouseButtonDown(0) && WeaponEquipped && CanAttack)
         {
 
-            if (state.IsTag("Attack") && state.normalizedTime >= 0.5 && state.normalizedTime < 0.99)
+            if (state.IsTag("Attack"))
             {
 
                 animator.SetTrigger("NextAttack");
@@ -220,13 +278,13 @@ public class PlayerController : MonoBehaviour
 
         }
 
-        if(state.IsTag("Attack") && state.normalizedTime >= 0.99)
+        if (state.IsTag("Attack") && state.normalizedTime >= 0.99)
         {
-            
+
             animator.SetBool("Attack", false);
             AnimationEnd();
             CanAttack = false;
-            
+
         }
 
     }
@@ -235,12 +293,12 @@ public class PlayerController : MonoBehaviour
     void AttackCoolDown()
     {
 
-        if(!CanAttack)
+        if (!CanAttack)
         {
 
-            AttackSpeed-= Time.deltaTime;
+            AttackSpeed -= Time.deltaTime;
 
-            if(AttackSpeed <= 0)
+            if (AttackSpeed <= 0)
             {
 
                 AttackSpeed = 0.3f;
@@ -270,6 +328,22 @@ public class PlayerController : MonoBehaviour
     }
 
 
+    void Attacked()
+    {
+
+        if (animator.GetCurrentAnimatorStateInfo(3).IsTag("Attacked") &&
+        animator.GetCurrentAnimatorStateInfo(3).normalizedTime >= 0.99f)
+        {
+
+            AlreadyAttacked = false;
+            CanInput = true;
+
+        }
+
+    }
+
+
+
 
     void AnimationEnd()
     {
@@ -280,6 +354,36 @@ public class PlayerController : MonoBehaviour
     }
 
 
+    void OnTriggerEnter(Collider other)
+    {
+
+        if (other.gameObject.tag == "EnemyWeapon")
+        {
+
+            GameObject attackEnemy = other.gameObject;
+
+            while (attackEnemy.transform.parent)
+            {
+
+                attackEnemy = attackEnemy.transform.parent.gameObject;
+
+            }
+
+            EnemeyAnim = attackEnemy.gameObject.GetComponent<Animator>();
+
+            if (EnemeyAnim.GetCurrentAnimatorStateInfo(1).IsTag("Attack") && !AlreadyAttacked)
+            {
+
+
+                animator.SetTrigger("Attacked");
+                CanInput = false;
+                AlreadyAttacked = true;
+
+            }
+
+        }
+
+    }
 
 
 

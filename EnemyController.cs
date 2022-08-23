@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class EnemyController : MonoBehaviour
@@ -7,17 +5,34 @@ public class EnemyController : MonoBehaviour
 
     public GameObject Player;
 
+
+    GameObject BloodEffect;
+
     Animator animator;
 
     Animator playerAnim;
 
-    Vector3 Direction;
+
+    Vector3 MoveDirection;
+
 
     public float MoveSpeed;
 
     public float DirectionChangeTime;
 
-    public float MaxHealth;
+    public float MaxHealth = 20;
+
+    public float DetectRange = 15f;
+
+    public float TraseSpeed = 0.5f;
+
+    public float AttackRange = 2.5f;
+
+    public float AttackCoolDownReset = 5f;
+
+    float Health;    
+    
+    float AttackCoolDown;
 
     bool AlreadytHit = false;
 
@@ -25,23 +40,32 @@ public class EnemyController : MonoBehaviour
     void Start()
     {
 
+        Player = GameObject.Find("Player");
+
+        BloodEffect = Resources.Load<GameObject>("BloodEffect");
+
         animator = GetComponent<Animator>();
 
         playerAnim = Player.GetComponent<Animator>();
 
-        Direction = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
+        MoveDirection = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
 
-        SetAbility(Random.Range(0f, 3f), Random.Range(2, 10), 10);
+        SetAbility(Random.Range(0, 4), Random.Range(2, 10), MaxHealth, DetectRange, TraseSpeed, AttackRange, AttackCoolDownReset);
+
 
     }
 
-    void SetAbility(float MoveSpeed, float DirectionChangeTime, float MaxHealth)
+
+    void SetAbility(float moveSpeed, float directionChangeTime, float maxHealth, float detectRange, float traseSpeed, float attackRange, float attackCoolDownReset)
     {
 
-        this.MoveSpeed = MoveSpeed;
-        this.DirectionChangeTime = DirectionChangeTime;
-        this.MaxHealth = MaxHealth;
-
+        this.MoveSpeed = moveSpeed;
+        this.DirectionChangeTime = directionChangeTime;
+        this.Health = maxHealth;
+        this.DetectRange = detectRange;
+        this.TraseSpeed = traseSpeed;
+        this.AttackRange = attackRange;
+        this.AttackCoolDown = attackCoolDownReset;
 
     }
 
@@ -50,31 +74,59 @@ public class EnemyController : MonoBehaviour
     {
 
         Attacked();
-        Move();
 
-    }
-
-    void Move()
-    {
-        DirectionChangeTime -= Time.deltaTime;
-
-
-        if (DirectionChangeTime <= 0)
+        if (!Trase(Player))
         {
 
-            DirectionChangeTime = Random.Range(2, 10);
-            Direction = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
-            MoveSpeed = Random.Range(1f, 3f);
+            if (Timer(ref DirectionChangeTime) <= 0)
+            {
+
+                ResetTimer(ref DirectionChangeTime, Random.Range(2, 10));
+                SetDirection(ref MoveDirection);
+
+            }
+
+
+            Move(MoveDirection, MoveSpeed);
 
         }
 
-        transform.forward = Direction;
+    }
 
-        if (MoveSpeed == 0 || Mathf.Approximately(Direction.sqrMagnitude, 0f))
+    float Timer(ref float time)
+    {
+
+        time -= Time.deltaTime;
+
+        return time;
+
+    }
+
+    void ResetTimer(ref float time, float resetTime)
+    {
+
+        time = resetTime;
+
+    }
+
+    void SetDirection(ref Vector3 moveDirection)
+    {
+
+        moveDirection = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
+        MoveSpeed = Random.Range(0, 4);
+
+    }
+
+
+    void Move(Vector3 moveDirection, float moveSpeed)
+    {
+
+        transform.forward = moveDirection;
+
+        if (moveSpeed == 0 || Mathf.Approximately(moveDirection.sqrMagnitude, 0f))
         {
 
             animator.SetBool("Walk", false);
-            animator.speed = 1f;
             return;
 
         }
@@ -82,12 +134,72 @@ public class EnemyController : MonoBehaviour
         {
 
             animator.SetBool("Walk", true);
-            animator.speed = 0.4f * MoveSpeed;
 
         }
 
+        transform.position += moveDirection * moveSpeed * Time.deltaTime;
 
-        transform.position += Direction * MoveSpeed * Time.deltaTime;
+    }
+
+
+    bool Trase(GameObject target)
+    {
+         
+        float distance = Vector3.Magnitude(transform.position - target.transform.position);
+
+
+        if (distance < DetectRange)
+        {
+
+            Timer(ref AttackCoolDown);
+            Vector3 traseDirection = target.transform.position - transform.position;
+
+            if (distance > AttackRange)
+            {
+                
+                animator.SetBool("Combat", true);
+                Move(traseDirection, TraseSpeed);
+                //Debug.Log(traseDirection + " " + traseDirection.magnitude);
+
+            }
+            else
+            {
+
+                animator.SetBool("Combat", true);
+
+                    Move(traseDirection, 0);
+
+                    if(AttackCoolDown <= 0)
+                    {
+
+                        Attack();
+                        ResetTimer(ref AttackCoolDown, AttackCoolDownReset);
+
+                    }
+
+                    return true;
+
+
+            }
+
+            return true;
+
+        }
+        else
+        {
+
+            animator.SetBool("Combat", false);
+            return false;
+
+        }
+
+    }
+
+    void Attack()
+    {
+
+        int attackNum = Random.Range(1,5);
+        animator.SetTrigger("Attack" + attackNum.ToString());
 
     }
 
@@ -97,9 +209,9 @@ public class EnemyController : MonoBehaviour
     void getDamage(float damage)
     {
 
-        MaxHealth -= damage;
+        Health -= damage;
 
-        if (MaxHealth <= 0)
+        if (Health <= 0)
         {
 
             Dead();
@@ -120,6 +232,7 @@ public class EnemyController : MonoBehaviour
 
     void Attacked()
     {
+
         if (animator.GetCurrentAnimatorStateInfo(1).IsTag("Attacked"))
         {
 
@@ -128,7 +241,7 @@ public class EnemyController : MonoBehaviour
         }
 
         if (animator.GetCurrentAnimatorStateInfo(1).IsTag("Attacked") &&
-        animator.GetCurrentAnimatorStateInfo(1).normalizedTime >= 0.6f)
+        animator.GetCurrentAnimatorStateInfo(1).normalizedTime >= 0.99f)
         {
 
             AlreadytHit = false;
@@ -143,18 +256,40 @@ public class EnemyController : MonoBehaviour
         if (other.gameObject.tag == "PlayerWeapon" && !AlreadytHit && Player.GetComponent<PlayerController>().IsAttacking)
         {
 
-            if (playerAnim.GetCurrentAnimatorStateInfo(2).normalizedTime <= 0.7f
-            && playerAnim.GetCurrentAnimatorStateInfo(2).normalizedTime >= 0.2f)
+            if (playerAnim.GetCurrentAnimatorStateInfo(2).normalizedTime >= 0.4f
+            && playerAnim.GetCurrentAnimatorStateInfo(2).normalizedTime <= 0.8f)
             {
 
-                animator.SetTrigger("Attacked");
+                if(playerAnim.GetCurrentAnimatorStateInfo(2).IsName("FinishAttack"))
+                {
+
+                    animator.SetTrigger("AttackedLargeMotion");
+
+                }
+                else
+                {
+
+                    animator.SetTrigger("Attacked");
+
+                }
+
                 AlreadytHit = true;
                 getDamage(2);
-
+                ShowBloodEffect(other);
 
             }
 
         }
+    }
+
+    void ShowBloodEffect(Collider other)
+    {
+
+        //Debug.Log(other.bounds);
+        Vector3 pos = other.bounds.center;
+        GameObject blood = Instantiate<GameObject>(BloodEffect, pos, other.transform.rotation);
+        //blood.transform.SetParent(transform, false);
+        Destroy(blood, 2f);
 
     }
 }
