@@ -40,7 +40,7 @@ public class PlayerRoll : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.Space) && !Rolling)
         {
 
-            playerController.CanInput = false;
+            playerController.SetCanInput(false);
 
             Rolling = true;
             animator.SetTrigger("Roll");
@@ -56,7 +56,7 @@ public class PlayerRoll : MonoBehaviour
         if(animator.GetCurrentAnimatorStateInfo(1).IsTag("Roll") && animator.GetCurrentAnimatorStateInfo(1).normalizedTime >= 0.99f)
         {
 
-            playerController.CanInput = true;
+            playerController.SetCanInput(true);
             
             Rolling = false;
             //Debug.Log("Roll finish");

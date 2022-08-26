@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,23 +10,31 @@ public class PlayerController : MonoBehaviour
 
     GameObject CameraLockTarget;
 
+    GameObject CameraLockStandard;
+
+
     Camera Cam;
+
+    EnemyController enemyController;
 
     Animator animator;
 
     Animator EnemeyAnim;
 
-    public float WalkSpeed = 2f;
 
-    public float RunSpeed = 6f;
+    float WalkSpeed = 2f;
 
-    public float TurnSpeed = 10f;
+    float RunSpeed = 6f;
 
-    public bool IsAttacking = false;
+    float TurnSpeed = 10f;
 
-    public float AttackSpeed = 0.3f;
+    float AttackSpeed = 0.3f;
 
-    public bool CanInput = true;
+    bool IsAttacking = false;
+
+    bool CanInput = true;
+
+    bool IsCameraLock = false;
 
     float Speed;
 
@@ -35,22 +44,64 @@ public class PlayerController : MonoBehaviour
 
     bool AlreadyAttacked = false;
 
-    bool isCameraLock = false;
+
+    public GameObject GetCameraLockTarget()
+    {
+
+        return this.CameraLockTarget;
+
+    }
+
+    public GameObject GetCameraLockStandard()
+    {
+
+        return this.CameraLockStandard;
+
+    }
+
+
+    public void SetIsCameraLock(bool condition)
+    {
+
+        this.IsCameraLock = condition;
+
+    }
+
+    public bool GetIsCameraLock()
+    {
+
+        return this.IsCameraLock;
+
+    }
+
+    public bool GetIsAttacking()
+    {
+
+        return this.IsAttacking;
+
+    }
+
+    public void SetCanInput(bool condition)
+    {
+
+        this.CanInput = condition;
+
+    }
 
 
     void Start()
     {
 
         animator = GetComponent<Animator>();
+
         Cam = UnityEngine.Camera.main;
+
         Cursor.lockState = CursorLockMode.Locked;
+
         EquipPosition.SetActive(false);
 
         SetAbility(WalkSpeed, RunSpeed, TurnSpeed, AttackSpeed);
 
-
-        GetCameraLockTarget();
-        Debug.Log(CameraLockTarget.name);
     }
 
 
@@ -59,9 +110,25 @@ public class PlayerController : MonoBehaviour
 
         Attacked();
 
-        Move(Cam.transform);
+        CameraLock();
+
+        if (IsCameraLock && CameraLockTarget != null)
+        {
+
+            CameraLockStandardUpdate();
+            Move(CameraLockStandard.transform);
+
+        }
+        else
+        {
+
+            Move(Cam.transform);
+
+        }
+
 
         DisableWeapon();
+        
 
         AttackCoolDown();
 
@@ -87,86 +154,115 @@ public class PlayerController : MonoBehaviour
 
         if (!CanInput)
         {
-
-            //Debug.Log("cantmove");
+            
+            //Debug.Log("Can't Input Key!");
             return;
-
 
         }
 
 
-        Vector2 direction = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+        Vector3 direction = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
 
-
-        bool isMove = direction.magnitude != 0;
-        bool isRun = Input.GetKey(KeyCode.LeftShift);
-
-        animator.SetBool("Walk", isMove);
-
-        //Debug.Log(animator.GetBool("Walk"));
-
-        if (isMove)
+        if (IsCameraLock)
         {
 
-            animator.SetBool("Run", isRun);
+            animator.SetFloat("CLMoveForward", direction.z);
+            animator.SetFloat("CLMoveRight", direction.x);
 
+            Vector3 forwardDirection = standard.position - this.transform.position;
+            forwardDirection.y = 0;
 
-            Vector3 lookForward = new Vector3(standard.forward.x, 0, standard.forward.z).normalized;
-            Vector3 lookRight = new Vector3(standard.right.x, 0, standard.right.z).normalized;
+            transform.forward = Vector3.Lerp(transform.forward, forwardDirection, TurnSpeed * Time.deltaTime);
+            transform.Translate(direction * Speed * Time.deltaTime);
 
-            Vector3 moveDir = lookForward * direction.y + lookRight * direction.x;
+        }
 
-            transform.forward = moveDir;
+        else
+        {
 
+            bool isMove = direction.magnitude != 0;
+            bool isRun = Input.GetKey(KeyCode.LeftShift);
 
-            if (isRun)
+            animator.SetBool("Walk", isMove);
+
+            //Debug.Log(animator.GetBool("Walk"));
+
+            if (isMove)
             {
 
-                Speed = RunSpeed;
+                animator.SetBool("Run", isRun);
+
+                if (isRun)
+                {
+
+                    Speed = RunSpeed;
+
+                }
+                else
+                {
+
+                    Speed = WalkSpeed;
+
+                }
+
+
+                Vector3 lookForward = new Vector3(standard.forward.x, 0, standard.forward.z).normalized;
+                Vector3 lookRight = new Vector3(standard.right.x, 0, standard.right.z).normalized;
+                Vector3 moveDir = lookForward * direction.z + lookRight * direction.x;
+
+                transform.forward = moveDir;
+                transform.position += moveDir * Speed * Time.deltaTime;
 
             }
             else
             {
 
-                Speed = WalkSpeed;
+                if (animator.GetBool("Run"))
+                {
+
+                    animator.SetBool("Run", false);
+
+                }
 
             }
 
-            transform.position += moveDir * Speed * Time.deltaTime;
 
         }
-        else
-        {
 
-            if (animator.GetBool("Run"))
-            {
-
-                animator.SetBool("Run", false);
-
-            }
-
-        }
 
     }
 
 
-    void GetCameraLockTarget()
+    void CameraLock()
     {
 
-        Collider[] objects = Physics.OverlapSphere(transform.position, 20f);
-        float distanceToPlayer = 20f;
-
-        for (int i = 0; i < objects.Length; i++)
+        if (Input.GetKeyDown(KeyCode.Q))
         {
 
-            if (objects[i].gameObject.tag == "Enemy")
+            if (IsCameraLock)
             {
 
-                if(Vector3.Magnitude(objects[i].gameObject.transform.position - transform.position) <= distanceToPlayer)
-                {
+                enemyController = CameraLockTarget.GetComponent<EnemyController>();
+                enemyController.GetHpBar().gameObject.SetActive(false);
+                enemyController.GetCameraLockDot().gameObject.SetActive(false);
+                enemyController.SetShowingCameraLockUI(false);
 
-                    CameraLockTarget = objects[i].gameObject;
-                    distanceToPlayer = Vector3.Magnitude(objects[i].gameObject.transform.position - transform.position);
+                Destroy(CameraLockStandard);
+                CameraLockTarget = null;
+                IsCameraLock = !IsCameraLock;
+                animator.SetBool("CameraLock", false);
+
+            }
+            else
+            {
+
+                SetCameraLockTarget();
+
+                if (CameraLockTarget != null)
+                {
+                    
+                    IsCameraLock = !IsCameraLock;
+                    animator.SetBool("CameraLock", true);
 
                 }
 
@@ -178,8 +274,52 @@ public class PlayerController : MonoBehaviour
 
 
 
-    void CameraLock()
+    void SetCameraLockTarget()
     {
+
+        float distanceToPlayer = 10f;
+        Collider[] objects = Physics.OverlapSphere(transform.position, distanceToPlayer);
+
+        for (int i = 0; i < objects.Length; i++)
+        {
+
+            if (objects[i].gameObject.tag == "Enemy")
+            {
+
+                if (Vector3.Magnitude(objects[i].gameObject.transform.position - transform.position) <= distanceToPlayer)
+                {
+
+                    CameraLockTarget = objects[i].gameObject;
+                    distanceToPlayer = Vector3.Magnitude(objects[i].gameObject.transform.position - transform.position);
+
+                }
+
+            }
+
+        }
+
+        if (CameraLockTarget != null)
+        {
+
+            enemyController = CameraLockTarget.GetComponent<EnemyController>();
+
+            enemyController.SetShowingCameraLockUI(true);
+
+            enemyController.GetHpBar().gameObject.SetActive(true);
+
+            enemyController.GetCameraLockDot().gameObject.SetActive(true);
+
+            CameraLockStandard = new GameObject("CameraLockStandard");
+
+            CameraLockStandard.transform.position = CameraLockTarget.transform.position + new Vector3(0, 1f, 0);
+
+            CameraLockStandard.transform.LookAt(CameraLockStandard.transform);
+
+            CameraLockStandard.transform.parent = CameraLockTarget.transform;
+
+
+
+        }
 
 
 
@@ -187,10 +327,16 @@ public class PlayerController : MonoBehaviour
 
 
 
-    void CameraLockMove()
+    void CameraLockStandardUpdate()
     {
 
+        Vector3 goal = CameraLockTarget.transform.position - this.transform.position;
 
+        goal.Normalize();
+
+        //Debug.DrawLine(Vector3.zero, goal, Color.red);
+
+        CameraLockStandard.transform.forward = goal;
 
     }
 
@@ -211,14 +357,14 @@ public class PlayerController : MonoBehaviour
             if (WeaponEquipped)
             {
 
-                SetCanInput(false);
+                CanInput = false;
                 animator.SetTrigger("WeaponEquip");
 
             }
             else
             {
 
-                SetCanInput(false);
+                CanInput = false;
                 animator.SetTrigger("WeaponEquip");
 
             }
@@ -228,7 +374,7 @@ public class PlayerController : MonoBehaviour
     }
 
 
-    void AbleWeapon()
+    public void AbleWeapon()
     {
 
         if (WeaponEquipped)
@@ -255,35 +401,28 @@ public class PlayerController : MonoBehaviour
     void Attack()
     {
 
-        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(2);
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
 
-        if (Input.GetMouseButtonDown(0) && WeaponEquipped && CanAttack)
+        if (Input.GetMouseButtonDown(0) && WeaponEquipped && CanAttack && !state.IsTag("Attacked"))
         {
 
-            if (state.IsTag("Attack"))
-            {
-
-                animator.SetTrigger("NextAttack");
-
-            }
-
-            else if (!state.IsTag("Attack"))
-            {
-
-                animator.SetBool("Attack", true);
-                SetIsAttacking(true);
-                SetCanInput(false);
-
-            }
+            animator.SetTrigger("Attack");
+            IsAttacking = true;
+            CanInput = false;
 
         }
 
         if (state.IsTag("Attack") && state.normalizedTime >= 0.99)
         {
 
-            animator.SetBool("Attack", false);
             AnimationEnd();
             CanAttack = false;
+            if(state.IsName("FinishAttack"))
+            {
+
+                animator.ResetTrigger("Attack");
+
+            }
 
         }
 
@@ -301,7 +440,7 @@ public class PlayerController : MonoBehaviour
             if (AttackSpeed <= 0)
             {
 
-                AttackSpeed = 0.3f;
+                AttackSpeed = 0.5f;
                 CanAttack = true;
 
             }
@@ -312,31 +451,17 @@ public class PlayerController : MonoBehaviour
 
 
 
-    void SetCanInput(bool CanInput = true)
-    {
-
-        this.CanInput = CanInput;
-
-    }
-
-
-    void SetIsAttacking(bool isAttacking = false)
-    {
-
-        this.IsAttacking = isAttacking;
-
-    }
-
-
     void Attacked()
     {
 
-        if (animator.GetCurrentAnimatorStateInfo(3).IsTag("Attacked") &&
-        animator.GetCurrentAnimatorStateInfo(3).normalizedTime >= 0.99f)
+        if (animator.GetCurrentAnimatorStateInfo(0).IsTag("Attacked") &&
+        animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 0.99f)
         {
 
             AlreadyAttacked = false;
             CanInput = true;
+            CanAttack = true;
+            animator.ResetTrigger("Attack");
 
         }
 
@@ -348,10 +473,11 @@ public class PlayerController : MonoBehaviour
     void AnimationEnd()
     {
 
-        SetCanInput();
-        SetIsAttacking();
+        CanInput = true;
+        IsAttacking = false;
 
     }
+
 
 
     void OnTriggerEnter(Collider other)
@@ -377,6 +503,7 @@ public class PlayerController : MonoBehaviour
 
                 animator.SetTrigger("Attacked");
                 CanInput = false;
+                CanAttack = false;
                 AlreadyAttacked = true;
 
             }

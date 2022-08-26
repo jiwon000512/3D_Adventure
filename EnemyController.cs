@@ -1,54 +1,119 @@
 using UnityEngine;
-
+using UnityEngine.UI;
 public class EnemyController : MonoBehaviour
 {
 
-    public GameObject Player;
+    public GameObject CameraLockPos;
 
+    GameObject Player;
+
+    GameObject PrfHpBar;
+
+    GameObject Canvas;
 
     GameObject BloodEffect;
+
+    GameObject PrfCameraLockDot;
+
+    RectTransform HpBar;
+
+    Image CameraLockDot;
+
+    Camera Cam;
 
     Animator animator;
 
     Animator playerAnim;
 
+    PlayerController playerController;
+
+    Image CurrentHpBar;
+
+
+    public Vector3 CameraLockOffSet;
+
 
     Vector3 MoveDirection;
 
 
-    public float MoveSpeed;
+    float MoveSpeed;
 
-    public float DirectionChangeTime;
+    float DirectionChangeTime;
 
-    public float MaxHealth = 20;
+    float MaxHealth = 20;
 
-    public float DetectRange = 15f;
+    float DetectRange = 15f;
 
-    public float TraseSpeed = 0.5f;
+    float TraseSpeed = 0.5f;
 
-    public float AttackRange = 2.5f;
+    float AttackRange = 2.5f;
 
-    public float AttackCoolDownReset = 5f;
+    float AttackCoolDownReset = 5f;
 
-    float Health;    
-    
+    bool ShowingCameraLockUI = false;
+
+
+    float Health;
+
     float AttackCoolDown;
 
     bool AlreadytHit = false;
+
+
+    public RectTransform GetHpBar()
+    {
+
+        return this.HpBar;
+
+    }
+
+    public Image GetCameraLockDot()
+    {
+
+        return this.CameraLockDot;
+
+    }
+
+    public void SetShowingCameraLockUI(bool condition)
+    {
+
+        this.ShowingCameraLockUI = condition;
+
+    }
 
 
     void Start()
     {
 
         Player = GameObject.Find("Player");
+        
+        Canvas = GameObject.Find("Canvas");
+
+        Cam = UnityEngine.Camera.main;
+
+        playerController = Player.GetComponent<PlayerController>();
 
         BloodEffect = Resources.Load<GameObject>("BloodEffect");
+
+        PrfHpBar = Resources.Load<GameObject>("BgHpBar");
+
+        PrfCameraLockDot = Resources.Load<GameObject>("CameraLockDot");
 
         animator = GetComponent<Animator>();
 
         playerAnim = Player.GetComponent<Animator>();
 
         MoveDirection = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
+
+        HpBar = Instantiate(PrfHpBar, Canvas.transform).GetComponent<RectTransform>();
+
+        CameraLockDot = Instantiate(PrfCameraLockDot, Canvas.transform).GetComponent<Image>();
+
+        CurrentHpBar = HpBar.transform.GetChild(0).GetComponent<Image>();
+
+        HpBar.gameObject.SetActive(false);
+
+        CameraLockDot.gameObject.SetActive(false);
 
         SetAbility(Random.Range(0, 4), Random.Range(2, 10), MaxHealth, DetectRange, TraseSpeed, AttackRange, AttackCoolDownReset);
 
@@ -90,6 +155,15 @@ public class EnemyController : MonoBehaviour
             Move(MoveDirection, MoveSpeed);
 
         }
+        
+        if (ShowingCameraLockUI)
+        {
+
+            ShowHpBar();
+            ShowCameraLockDot();
+
+        }
+
 
     }
 
@@ -116,6 +190,25 @@ public class EnemyController : MonoBehaviour
         MoveSpeed = Random.Range(0, 4);
 
     }
+
+    void ShowHpBar()
+    {
+
+        Vector3 hpBarPos = Camera.main.WorldToScreenPoint(new Vector3(transform.position.x, transform.position.y + 2f, transform.position.z));
+        HpBar.position = hpBarPos;
+        CurrentHpBar.fillAmount = Health / MaxHealth;
+
+    }
+
+
+    void ShowCameraLockDot()
+    {
+
+        Vector3 dotPos = Camera.main.WorldToScreenPoint(CameraLockPos.transform.position + CameraLockOffSet);
+        CameraLockDot.transform.position = dotPos;
+
+    }
+
 
 
     void Move(Vector3 moveDirection, float moveSpeed)
@@ -144,7 +237,7 @@ public class EnemyController : MonoBehaviour
 
     bool Trase(GameObject target)
     {
-         
+
         float distance = Vector3.Magnitude(transform.position - target.transform.position);
 
 
@@ -156,7 +249,7 @@ public class EnemyController : MonoBehaviour
 
             if (distance > AttackRange)
             {
-                
+
                 animator.SetBool("Combat", true);
                 Move(traseDirection, TraseSpeed);
                 //Debug.Log(traseDirection + " " + traseDirection.magnitude);
@@ -167,17 +260,17 @@ public class EnemyController : MonoBehaviour
 
                 animator.SetBool("Combat", true);
 
-                    Move(traseDirection, 0);
+                Move(traseDirection, 0);
 
-                    if(AttackCoolDown <= 0)
-                    {
+                if (AttackCoolDown <= 0)
+                {
 
-                        Attack();
-                        ResetTimer(ref AttackCoolDown, AttackCoolDownReset);
+                    Attack();
+                    ResetTimer(ref AttackCoolDown, AttackCoolDownReset);
 
-                    }
+                }
 
-                    return true;
+                return true;
 
 
             }
@@ -198,7 +291,7 @@ public class EnemyController : MonoBehaviour
     void Attack()
     {
 
-        int attackNum = Random.Range(1,5);
+        int attackNum = Random.Range(1, 5);
         animator.SetTrigger("Attack" + attackNum.ToString());
 
     }
@@ -214,7 +307,7 @@ public class EnemyController : MonoBehaviour
         if (Health <= 0)
         {
 
-            Dead();
+            Die();
 
         }
         //Debug.Log(MaxHealth);
@@ -222,10 +315,20 @@ public class EnemyController : MonoBehaviour
     }
 
 
-    void Dead()
+    void Die()
     {
 
+        if(System.Object.ReferenceEquals(this.gameObject, playerController.GetCameraLockTarget()))
+        {
+
+            playerController.SetIsCameraLock(false);
+            playerAnim.SetBool("CameraLock", false);
+
+        }
+
         Destroy(gameObject);
+        Destroy(HpBar.gameObject);
+        Destroy(CameraLockDot.gameObject);
 
     }
 
@@ -253,14 +356,15 @@ public class EnemyController : MonoBehaviour
     void OnTriggerStay(Collider other)
     {
 
-        if (other.gameObject.tag == "PlayerWeapon" && !AlreadytHit && Player.GetComponent<PlayerController>().IsAttacking)
+        if (other.gameObject.tag == "PlayerWeapon" && !AlreadytHit && Player.GetComponent<PlayerController>().GetIsAttacking()
+        && !animator.GetCurrentAnimatorStateInfo(1).IsTag("Attacked"))
         {
-
-            if (playerAnim.GetCurrentAnimatorStateInfo(2).normalizedTime >= 0.4f
-            && playerAnim.GetCurrentAnimatorStateInfo(2).normalizedTime <= 0.8f)
+            
+            if (playerAnim.GetCurrentAnimatorStateInfo(0).normalizedTime >= 0.2f
+            && playerAnim.GetCurrentAnimatorStateInfo(0).normalizedTime <= 0.9f)
             {
-
-                if(playerAnim.GetCurrentAnimatorStateInfo(2).IsName("FinishAttack"))
+                /*
+                if (playerAnim.GetCurrentAnimatorStateInfo(0).IsName("FinishAttack"))
                 {
 
                     animator.SetTrigger("AttackedLargeMotion");
@@ -272,7 +376,9 @@ public class EnemyController : MonoBehaviour
                     animator.SetTrigger("Attacked");
 
                 }
+                */
 
+                animator.SetTrigger("Attacked");
                 AlreadytHit = true;
                 getDamage(2);
                 ShowBloodEffect(other);
@@ -280,6 +386,7 @@ public class EnemyController : MonoBehaviour
             }
 
         }
+
     }
 
     void ShowBloodEffect(Collider other)
