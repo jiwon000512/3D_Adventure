@@ -52,7 +52,6 @@ public class EnemyController : MonoBehaviour
 
     bool ShowingCameraLockUI = false;
 
-
     float Health;
 
     float AttackCoolDown;
@@ -336,15 +335,15 @@ public class EnemyController : MonoBehaviour
     void Attacked()
     {
 
-        if (animator.GetCurrentAnimatorStateInfo(1).IsTag("Attacked"))
+        if (animator.GetCurrentAnimatorStateInfo(0).IsTag("Attacked"))
         {
 
             MoveSpeed = 0;
 
         }
 
-        if (animator.GetCurrentAnimatorStateInfo(1).IsTag("Attacked") &&
-        animator.GetCurrentAnimatorStateInfo(1).normalizedTime >= 0.99f)
+        if (animator.GetCurrentAnimatorStateInfo(0).IsTag("Attacked") &&
+        animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 0.99f)
         {
 
             AlreadytHit = false;
@@ -357,13 +356,13 @@ public class EnemyController : MonoBehaviour
     {
 
         if (other.gameObject.tag == "PlayerWeapon" && !AlreadytHit && Player.GetComponent<PlayerController>().GetIsAttacking()
-        && !animator.GetCurrentAnimatorStateInfo(1).IsTag("Attacked"))
+        && !animator.GetCurrentAnimatorStateInfo(0).IsTag("Attacked"))
         {
             
             if (playerAnim.GetCurrentAnimatorStateInfo(0).normalizedTime >= 0.2f
             && playerAnim.GetCurrentAnimatorStateInfo(0).normalizedTime <= 0.9f)
             {
-                /*
+                
                 if (playerAnim.GetCurrentAnimatorStateInfo(0).IsName("FinishAttack"))
                 {
 
@@ -376,9 +375,7 @@ public class EnemyController : MonoBehaviour
                     animator.SetTrigger("Attacked");
 
                 }
-                */
-
-                animator.SetTrigger("Attacked");
+                
                 AlreadytHit = true;
                 getDamage(2);
                 ShowBloodEffect(other);

@@ -41,7 +41,6 @@ public class PlayerRoll : MonoBehaviour
         {
 
             playerController.SetCanInput(false);
-
             Rolling = true;
             animator.SetTrigger("Roll");
             rigid.AddForce(new Vector3(0,0,1) * RollPower, ForceMode.Impulse);

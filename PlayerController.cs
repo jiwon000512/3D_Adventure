@@ -12,14 +12,13 @@ public class PlayerController : MonoBehaviour
 
     GameObject CameraLockStandard;
 
-
     Camera Cam;
 
     EnemyController enemyController;
 
     Animator animator;
 
-    Animator EnemeyAnim;
+    Animator EnemyAnim;
 
 
     float WalkSpeed = 2f;
@@ -495,9 +494,9 @@ public class PlayerController : MonoBehaviour
 
             }
 
-            EnemeyAnim = attackEnemy.gameObject.GetComponent<Animator>();
+            EnemyAnim = attackEnemy.gameObject.GetComponent<Animator>();
 
-            if (EnemeyAnim.GetCurrentAnimatorStateInfo(1).IsTag("Attack") && !AlreadyAttacked)
+            if (EnemyAnim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") && !AlreadyAttacked)
             {
 
 

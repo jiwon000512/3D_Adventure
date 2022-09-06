@@ -21,9 +21,9 @@ public class PlayerJump : MonoBehaviour
 
     void Update()
     {
-    
-        //Jump();
-    
+        
+        Jump();
+        
     }
 
     void Jump()
