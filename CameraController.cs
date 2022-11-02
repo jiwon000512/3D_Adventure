@@ -45,7 +45,11 @@ public class CameraController : MonoBehaviour
 
     }
 
-
+    /* 
+    기능: 카메라 이동
+    설명: 
+    마우스 포인터의 좌표와 현재 카메라의 각도를 벡터에 저장.
+    */
     void CameraMove(Transform target)
     {
 
@@ -76,7 +80,11 @@ public class CameraController : MonoBehaviour
         transform.rotation = Quaternion.Euler(x, camAngle.y + mouseDelta.x, camAngle.z);
 
     }
-
+    /*
+    기능: 시점 고정 카메라 이동
+    설명:
+    시점 고정할 target오브젝트를 인자로 받아서 카메라의 위치와 각도 조절
+    */
     void LockedCameraMove(Transform target)
     {
 

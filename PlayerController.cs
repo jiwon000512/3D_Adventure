@@ -111,6 +111,11 @@ public class PlayerController : MonoBehaviour
 
         CameraLock();
 
+        /*
+        화면 고정이 활성화 되었고, 고정할 타겟이 존재하다면
+        화면 고정 지점의 위치를 업데이트하고,
+        플레이어가 그 지점을 기준으로 움직임
+        */
         if (IsCameraLock && CameraLockTarget != null)
         {
 
@@ -128,7 +133,6 @@ public class PlayerController : MonoBehaviour
 
         DisableWeapon();
         
-
         AttackCoolDown();
 
         Attack();
@@ -136,7 +140,9 @@ public class PlayerController : MonoBehaviour
 
     }
 
-
+    /*
+    기능: 시작시 기본 능력치 설정
+    */
     void SetAbility(float WalkSpeed, float RunSpeed, float TurnSpeed, float AttackSpeed)
     {
 
@@ -147,21 +153,26 @@ public class PlayerController : MonoBehaviour
 
     }
 
-
+    /*
+    기능: 플레이어 이동
+    설명: Transform 변수를 기준으로 플레이어를 이동시킴
+    */
     void Move(Transform standard)
     {
 
+        //특정 행동으로 인해 키보드 입력을 받을 수 없는 상태의 경우 return
         if (!CanInput)
         {
             
-            //Debug.Log("Can't Input Key!");
             return;
 
         }
 
-
+        //키보드 입력값을 벡터로 저장
         Vector3 direction = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
 
+
+        //카메라 고정상태라면 다른 애니메이션 상태값을 설정하고 상대좌표로 위치 갱신
         if (IsCameraLock)
         {
 
@@ -184,8 +195,7 @@ public class PlayerController : MonoBehaviour
 
             animator.SetBool("Walk", isMove);
 
-            //Debug.Log(animator.GetBool("Walk"));
-
+            //direction벡터의 길이가 0인지 판단 (방향키를 입력 받았는지 여부 판단)
             if (isMove)
             {
 
@@ -204,7 +214,7 @@ public class PlayerController : MonoBehaviour
 
                 }
 
-
+                //움직임의 방향을 standard 게임 오브젝트를 기준으로 수정
                 Vector3 lookForward = new Vector3(standard.forward.x, 0, standard.forward.z).normalized;
                 Vector3 lookRight = new Vector3(standard.right.x, 0, standard.right.z).normalized;
                 Vector3 moveDir = lookForward * direction.z + lookRight * direction.x;
@@ -231,13 +241,18 @@ public class PlayerController : MonoBehaviour
 
     }
 
-
+    /*
+    기능: 카메라 고정
+    설명:
+    카메라 고정o: 적의 체력과 시점 고정 UI 비활성화 후 카메라 고정 해제 
+    카메라 고정x: CameraLockTarget 오브젝트 탐색 후 카메라 고정
+    */
     void CameraLock()
     {
 
         if (Input.GetKeyDown(KeyCode.Q))
         {
-
+            //카메라 고정 상태
             if (IsCameraLock)
             {
 
@@ -252,6 +267,7 @@ public class PlayerController : MonoBehaviour
                 animator.SetBool("CameraLock", false);
 
             }
+            //카메라 고정 상태x
             else
             {
 
@@ -272,7 +288,12 @@ public class PlayerController : MonoBehaviour
     }
 
 
-
+    /*
+    기능: 카메라 고정 타겟 탐색
+    설명:
+    플레이어와 일정 거리 내에 있는 collider 컴포넌트가 존재하는 게임 오브젝트 탐색,
+    tag가 Enemy인 오브젝트 중 플레이어와의 거리가 가장 짧은 오브젝트를 타겟으로 설정
+    */
     void SetCameraLockTarget()
     {
 
@@ -316,8 +337,6 @@ public class PlayerController : MonoBehaviour
 
             CameraLockStandard.transform.parent = CameraLockTarget.transform;
 
-
-
         }
 
 
@@ -325,7 +344,11 @@ public class PlayerController : MonoBehaviour
     }
 
 
-
+    /*
+    기능: 카메라 고정 기준 오브젝트의 rotation 업데이트
+    설명:
+    카메라가 추적 할 오브젝트가 플레이어를 향하도록 rotation업데이트
+    */
     void CameraLockStandardUpdate()
     {
 
@@ -333,13 +356,16 @@ public class PlayerController : MonoBehaviour
 
         goal.Normalize();
 
-        //Debug.DrawLine(Vector3.zero, goal, Color.red);
-
         CameraLockStandard.transform.forward = goal;
 
     }
 
 
+    /*
+    기능: 무기해제
+    설명:
+    키보드 E입력 시 다른 키 입력을 비활성화하고 무기 장착/해제 애니메이션 실행 
+    */
     void DisableWeapon()
     {
 
@@ -372,7 +398,10 @@ public class PlayerController : MonoBehaviour
 
     }
 
-
+    /*
+    기능: 무기 활성화
+    설명: 무기 장착 여부를 판단하여 무기의 위치를 변경
+    */
     public void AbleWeapon()
     {
 
@@ -396,7 +425,12 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-
+    /*
+    기능: 공격
+    설명:
+    마우스 왼쪽 버튼 클릭 시 공격 애니메이션 실행,
+    만약 공격 애니메이션 실행 중 입력이 다시 들어왔을 경우 다음 공격 애니메이션 실행
+    */
     void Attack()
     {
 
@@ -427,7 +461,11 @@ public class PlayerController : MonoBehaviour
 
     }
 
-
+    /*
+    기능: 공격속도
+    설명:
+    공격 애니메이션이 종료 된 후 다음 공격까지의 쿨타임 감소
+    */
     void AttackCoolDown()
     {
 
@@ -448,8 +486,11 @@ public class PlayerController : MonoBehaviour
 
     }
 
-
-
+    /*
+    기능: 피격
+    설명:
+    피격 애니메이션 종료 시 다음 피격이 가능하도록 설정
+    */
     void Attacked()
     {
 
@@ -468,7 +509,11 @@ public class PlayerController : MonoBehaviour
 
 
 
-
+    /*
+    기능: 애니메이션 종료
+    설명:
+    애니메이션 종료시 입력이 가능하도록 설정
+    */
     void AnimationEnd()
     {
 
@@ -478,7 +523,11 @@ public class PlayerController : MonoBehaviour
     }
 
 
-
+    /*
+    기능: 피격처리2
+    설명:
+    적의 무기의 TriggerEnter가 발생했을 시 적의 애니메이션을 확인하여 공격 모션일 시 피격판정처리
+    */
     void OnTriggerEnter(Collider other)
     {
 
@@ -498,7 +547,6 @@ public class PlayerController : MonoBehaviour
 
             if (EnemyAnim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") && !AlreadyAttacked)
             {
-
 
                 animator.SetTrigger("Attacked");
                 CanInput = false;

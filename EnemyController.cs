@@ -205,7 +205,7 @@ public class EnemyController : MonoBehaviour
 
         Vector3 dotPos = Camera.main.WorldToScreenPoint(CameraLockPos.transform.position + CameraLockOffSet);
         CameraLockDot.transform.position = dotPos;
-
+        
     }
 
 
@@ -289,7 +289,7 @@ public class EnemyController : MonoBehaviour
 
     void Attack()
     {
-
+        
         int attackNum = Random.Range(1, 5);
         animator.SetTrigger("Attack" + attackNum.ToString());
 
