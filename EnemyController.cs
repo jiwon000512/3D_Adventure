@@ -139,9 +139,10 @@ public class EnemyController : MonoBehaviour
 
         Attacked();
 
+        //플레이어가 Trase범위 내에 있는지 판단
         if (!Trase(Player))
         {
-
+            //특정 시간이 지날때마다 이동 방향과 속도 랜덤으로 재설정
             if (Timer(ref DirectionChangeTime) <= 0)
             {
 
@@ -209,7 +210,11 @@ public class EnemyController : MonoBehaviour
     }
 
 
-
+    /*
+    기능: 이동
+    설명:
+    방향과 속도를 입력받고 해당 방향으로 이동
+    */
     void Move(Vector3 moveDirection, float moveSpeed)
     {
 
@@ -233,7 +238,12 @@ public class EnemyController : MonoBehaviour
 
     }
 
-
+    /*
+    기능: 추적
+    설명:
+    인자로 받은 게임 오브젝트를 추격함
+    추격이 가능할 시 combat 애니메이션을 실행
+    */
     bool Trase(GameObject target)
     {
 
@@ -251,7 +261,6 @@ public class EnemyController : MonoBehaviour
 
                 animator.SetBool("Combat", true);
                 Move(traseDirection, TraseSpeed);
-                //Debug.Log(traseDirection + " " + traseDirection.magnitude);
 
             }
             else
@@ -287,6 +296,11 @@ public class EnemyController : MonoBehaviour
 
     }
 
+    /*
+    기능: 공격
+    설명:
+    4가지의 공격 모션 중 하나 실행
+    */
     void Attack()
     {
         
@@ -309,7 +323,6 @@ public class EnemyController : MonoBehaviour
             Die();
 
         }
-        //Debug.Log(MaxHealth);
 
     }
 
@@ -352,6 +365,11 @@ public class EnemyController : MonoBehaviour
 
     }
 
+    /*
+    기능: 피격처리
+    설명:
+    플레이어의 무기에 공격을 받았을 시 출혈 파티클 생성, 체력 감소, 피격 애니메이션 실행
+    */
     void OnTriggerStay(Collider other)
     {
 
@@ -385,14 +403,17 @@ public class EnemyController : MonoBehaviour
         }
 
     }
-
+    
+    /*
+    기능: 출혈 파티클 생성
+    설명:
+    피격 시 해당 위치에 출혈 파티클을 2초동안 생성하여 유지
+    */
     void ShowBloodEffect(Collider other)
     {
 
-        //Debug.Log(other.bounds);
         Vector3 pos = other.bounds.center;
         GameObject blood = Instantiate<GameObject>(BloodEffect, pos, other.transform.rotation);
-        //blood.transform.SetParent(transform, false);
         Destroy(blood, 2f);
 
     }
